@@ -1,0 +1,217 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>org.iscas</groupId>
+	<artifactId>auto-publish</artifactId>
+	<packaging>war</packaging>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>auto-publish Maven Webapp</name>
+	<url>http://maven.apache.org</url>
+
+
+	<dependencies>
+		<!-- 测试 -->
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.9</version>
+			<scope>test</scope>
+		</dependency>
+		<!-- 日志 -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-api</artifactId>
+			<version>1.6.2</version>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>jcl-over-slf4j</artifactId>
+			<version>1.6.2</version>
+		</dependency>
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-core</artifactId>
+			<version>1.1.3</version>
+		</dependency>
+		<dependency>
+			<groupId>ch.qos.logback</groupId>
+			<artifactId>logback-classic</artifactId>
+			<version>1.1.3</version>
+		</dependency>
+
+		<!-- spring -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-core</artifactId>
+			<version>4.0.0.RELEASE</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-context-support</artifactId>
+			<version>4.0.0.RELEASE</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-jdbc</artifactId>
+			<version>4.0.0.RELEASE</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-tx</artifactId>
+			<version>4.0.0.RELEASE</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-webmvc</artifactId>
+			<version>4.0.0.RELEASE</version>
+		</dependency>
+
+		<!-- Servlet -->
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>javax.servlet-api</artifactId>
+			<version>3.0.1</version>
+			<scope>provided</scope>
+		</dependency>
+		<!-- <dependency> <groupId>javax.servlet.jsp</groupId> <artifactId>jsp-api</artifactId> 
+			<version>2.2</version> </dependency> -->
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>jstl</artifactId>
+			<version>1.2</version>
+		</dependency>
+	</dependencies>
+
+	<!-- 配置文件 -->
+	<profiles>
+		<profile><!-- 研发环境 -->
+			<id>development</id>
+			<properties>
+				<profiles.active>dev</profiles.active><!-- Tomcat7的部署url是manager/text 
+					Tomcat6没有/text -->
+				<deploy.url>http://192.168.191.2:8080/manager/text</deploy.url>
+			</properties>
+		</profile>
+		<profile><!-- 测试环境 -->
+			<id>test</id>
+			<properties>
+				<profiles.active>test</profiles.active>
+				<deploy.url>http://192.168.0.200:8080/manager/text</deploy.url>
+			</properties>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+		</profile>
+		<profile>
+			<!-- 生产环境 (出于安全考虑，一般生产环境不能自动部署，也不会开放端口，需要人工处理，这里的配置用来打包) -->
+			<id>production</id>
+			<properties>
+				<profiles.active>pro</profiles.active>
+				<deploy.url>http://www.app.cn:8080/manager/text</deploy.url>
+			</properties>
+		</profile>
+	</profiles>
+	
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<finalName>auto-publish</finalName>
+	</properties>
+	
+	
+	<build>
+		<finalName>auto-publish</finalName>
+		<!-- 打包配置文件管理 -->
+		<resources>
+
+			<!-- 代码生成器配置文件过滤 -->
+			<resource>
+				<directory>src/main/java</directory>
+				<includes>
+					<include>**/*.properties</include>
+					<include>**/*.xml</include>
+				</includes>
+				<excludes>
+					<exclude>**/generatorConfig.xml</exclude>
+				</excludes>
+				<filtering>true</filtering>
+			</resource>
+
+			<!-- 所有环境配置文件过滤 -->
+			<resource>
+				<directory>src/main/resources</directory>
+				<excludes>
+					<exclude>test/*</exclude>
+					<exclude>pro/*</exclude>
+					<exclude>dev/*</exclude>
+				</excludes>
+			</resource>
+
+			<!-- 指定环境配置文件导入 -->
+			<resource>
+				<directory>src/main/resources/${profiles.active}</directory>
+			</resource>
+		</resources>
+
+		<plugins>
+			<!-- 编译 -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.2</version>
+				<configuration>
+					<source>1.7</source>
+					<target>1.7</target>
+				</configuration>
+			</plugin>
+
+			<!-- 打包 -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-war-plugin</artifactId>
+				<version>2.4</version>
+				<!-- <configuration> <webResources> <resource> <directory>webapp</directory> 
+					</resource> </webResources> </configuration> -->
+			</plugin>
+
+			<!-- 自动部署 -->
+			<plugin>
+				<groupId>org.apache.tomcat.maven</groupId>
+				<artifactId>tomcat7-maven-plugin</artifactId>
+				<configuration>
+					<url>http://192.168.191.2:8080/manager/text</url>
+					<server>admin</server>
+					<username>tomcat-username</username>
+					<password>tomcat-password</password>
+					<path>/${finalName}</path>
+				</configuration>
+			</plugin>
+			<!-- 自动部署 -->
+			<!-- <plugin>
+				<groupId>org.codehaus.cargo</groupId>
+				<artifactId>cargo-maven2-plugin</artifactId>
+				<version>1.1.3</version>
+				<configuration>
+					<wait>true</wait>
+					<container>
+						<containerId>tomcat7x</containerId>
+						<type>remote</type>
+					</container>
+					<configuration>
+						<type>runtime</type>
+						<properties>
+							<cargo.remote.uri>${deploy.url}</cargo.remote.uri>
+							<pre name="code" class="html">                                                        
+							Tomcat配置的用户名密码， 见Tomcat自动部署支持章节
+								<cargo.remote.username>tomcat-username</cargo.remote.username>
+								<cargo.remote.password>tomcat-password</cargo.remote.password>
+							</pre>
+						</properties>
+					</configuration>
+				</configuration>
+			</plugin> -->
+		</plugins>
+	</build>
+</project>
